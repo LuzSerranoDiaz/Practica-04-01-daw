@@ -24,9 +24,12 @@
 
     - name: decargar wp-cli, moverlo a bin y darle permisos
       ansible.builtin.get_url:
-      url: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
-      dest: /usr/local/bin/wp
-      mode: a+x
+        url: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+        dest: /usr/local/bin/wp
+        mode: a+x
+
+    - name: borrar 
+      command: sudo rm -rf /var/www/html/*
 
     - name: descargar el codigo de wordpress
       command:
@@ -44,13 +47,14 @@
         --dbhost={{ ip.backend }} \
         --path=/var/www/html \
         --allow-root
-        
-    - name: Set up wp-config
+
+    - name: install wp
       command:
-        wp config create \
-        --dbname={{ db.name }} \
-        --dbuser={{ db.user }} \
-        --dbpass={{ db.password }} \
-        --dbhost= {{ ip.backend }} \
+        wp core install \
+        --url={{ certbot.domain }} \
+        --title="{{ wordpress.title }}" \
+        --admin_user={{ wordpress.admin }} \
+        --admin_password={{ wordpress.password }} \
+        --admin_email={{ wordpress.email }} \
         --path=/var/www/html \
-        --allow-root
+        --allow-root  

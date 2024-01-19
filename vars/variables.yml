@@ -6,6 +6,12 @@ db:
     user: prestashop_user
     password: prestashop_password
 
+wordpress:
+    title: practica-04-01
+    admin: LuzSerranoDiaz
+    password: password123
+    email: diaz03luz@gmail.com
+
 certbot:
     email: diaz03luz@gmail.com
     domain: ansible-daw.ddns.net
