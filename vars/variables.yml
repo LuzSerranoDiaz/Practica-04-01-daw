@@ -1,0 +1,11 @@
+ip:
+    frontend: 172.31.93.137
+    backend: 172.31.87.196
+db:
+    name: prestashop_db
+    user: prestashop_user
+    password: prestashop_password
+
+certbot:
+    email: diaz03luz@gmail.com
+    domain: ansible-daw.ddns.net

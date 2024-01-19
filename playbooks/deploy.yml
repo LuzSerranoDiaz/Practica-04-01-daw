@@ -1,0 +1,56 @@
+---
+- name: Playbook para hacer el deploy de la aplicación web PrestaShop
+  hosts: frontend
+  become: yes
+
+  vars_files:
+    - ../vars/variables.yml
+
+  tasks:
+    # - name: Descargar y descomprimir wordpress
+    #   unarchive:
+    #     src: https://wordpress.org/latest.tar.gz
+    #     dest: "/var/www/html/{{ ip.frontend }}"
+    #     remote_src: yes
+    #     creates: "/var/www/html/{{ ip.frontend }}/wordpress"
+
+    # - name: Set ownership
+    #   file:
+    #     path: "/var/www/{{ ip.frontend }}"
+    #     state: directory
+    #     recurse: yes
+    #     owner: www-data
+    #     group: www-data
+
+    - name: decargar wp-cli, moverlo a bin y darle permisos
+      ansible.builtin.get_url:
+      url: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+      dest: /usr/local/bin/wp
+      mode: a+x
+
+    - name: descargar el codigo de wordpress
+      command:
+        wp core download \
+        --locale=es_ES \
+        --path=/var/www/html \
+        --allow-root
+        
+    - name: Set up wp-config
+      command:        
+        wp config create \
+        --dbname={{ db.name }} \
+        --dbuser={{ db.user }} \
+        --dbpass={{ db.password }} \
+        --dbhost={{ ip.backend }} \
+        --path=/var/www/html \
+        --allow-root
+        
+    - name: Set up wp-config
+      command:
+        wp config create \
+        --dbname={{ db.name }} \
+        --dbuser={{ db.user }} \
+        --dbpass={{ db.password }} \
+        --dbhost= {{ ip.backend }} \
+        --path=/var/www/html \
+        --allow-root
