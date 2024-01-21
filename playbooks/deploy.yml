@@ -7,21 +7,6 @@
     - ../vars/variables.yml
 
   tasks:
-    # - name: Descargar y descomprimir wordpress
-    #   unarchive:
-    #     src: https://wordpress.org/latest.tar.gz
-    #     dest: "/var/www/html/{{ ip.frontend }}"
-    #     remote_src: yes
-    #     creates: "/var/www/html/{{ ip.frontend }}/wordpress"
-
-    # - name: Set ownership
-    #   file:
-    #     path: "/var/www/{{ ip.frontend }}"
-    #     state: directory
-    #     recurse: yes
-    #     owner: www-data
-    #     group: www-data
-
     - name: decargar wp-cli, moverlo a bin y darle permisos
       ansible.builtin.get_url:
         url: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
@@ -29,7 +14,7 @@
         mode: a+x
 
     - name: borrar 
-      command: sudo rm -rf /var/www/html/*
+      shell: /bin/rm -rf /var/www/html*
 
     - name: descargar el codigo de wordpress
       command:
@@ -58,3 +43,13 @@
         --admin_email={{ wordpress.email }} \
         --path=/var/www/html \
         --allow-root  
+
+    - name: install plugin
+      command:
+        wp plugin install wps-hide-login --path=/var/www/html --allow-root
+
+    - name: PermaLinks
+      command: wp --path=/var/www/html plugin install permalink-manager --activate --allow-root
+
+    - name: PermaLinks config
+      command: wp --path=/var/www/html option update permalink_structure '/%postname%/' --allow-root
