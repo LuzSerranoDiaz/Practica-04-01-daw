@@ -1,5 +1,5 @@
 ---
-- name: Playbook para hacer el deploy de la aplicación web PrestaShop
+- name: Playbook para hacer el deploy de la aplicación web Wordpress
   hosts: frontend
   become: yes
 
