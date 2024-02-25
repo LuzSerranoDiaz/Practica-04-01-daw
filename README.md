@@ -2,6 +2,64 @@
 
 En esta practica se utilizará ansible para instalar una pila lamp junto a wordpress
 
+## Variables
+
+```yml
+ip:
+    frontend: 172.31.93.137
+    backend: 172.31.87.196
+db:
+    name: prestashop_db
+    user: prestashop_user
+    password: prestashop_password
+
+wordpress:
+    title: practica-04-01
+    admin: LuzSerranoDiaz
+    password: password123
+    email: diaz03luz@gmail.com
+
+certbot:
+    email: diaz03luz@gmail.com
+    domain: ansible-daw.ddns.net
+```
+
+## Inventory
+
+```
+[backend]
+172.31.87.196
+#nodo1
+
+[frontend]
+172.31.93.137
+#nodo2
+
+[all:vars]
+ansible_user=ubuntu
+ansible_ssh_private_key_file=/home/ubuntu/vockey.pem
+ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new'
+```
+
+## Templates
+
+```
+ServerSignature Off
+ServerTokens Prod
+
+<VirtualHost *:80>
+        DocumentRoot /var/www/html
+        DirectoryIndex index.php index.html
+
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+        <Directory "/var/www/html">
+            AllowOverride All
+        </Directory>
+</VirtualHost>
+```
+
 ## Playbooks
 
 ### Install_lamp_backend
@@ -204,4 +262,98 @@ Con el comando `certbot --apache` realizamos el certificado y con estos siguient
 * `--no-eff-email` : indica que no queremos compartir nuestro email con la 'Electronic Frontier Foundation'
 * `-d $CERTIFICATE_DOMAIN` : indica el dominio, que en nuestro caso es 'practica-15.ddns.net', el dominio conseguido con el servicio de 'no-ip'
 * `--non-interactive` : indica que no solicite ningún tipo de dato de teclado.
+
+### Deploy
+
+```yml
+---
+- name: Playbook para hacer el deploy de la aplicación web Wordpress
+  hosts: frontend
+  become: yes
+
+  vars_files:
+    - ../vars/variables.yml
+
+  tasks:
+    - name: decargar wp-cli, moverlo a bin y darle permisos
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+        dest: /usr/local/bin/wp
+        mode: a+x
+
+    - name: borrar 
+      shell: /bin/rm -rf /var/www/html*
+```
+Se descarga la herramiento wp-cli, se le da permisos y se borran versiones anteriores de WP
+```yml
+    - name: descargar el codigo de wordpress
+      command:
+        wp core download \
+        --locale=es_ES \
+        --path=/var/www/html \
+        --allow-root
+```
+Se borran las versiones previas de WordPress y se instala una version nueva con estos parametros:
+* `--locale=es_ES` : especifica el idioma.
+* `--path=/var/www/html` : especifica el directorio de la descarga. 
+* `--allow-root` : para poder ejecutar el comando como sudo.
+```yml
+    - name: Set up wp-config
+      command:        
+        wp config create \
+        --dbname={{ db.name }} \
+        --dbuser={{ db.user }} \
+        --dbpass={{ db.password }} \
+        --dbhost={{ ip.backend }} \
+        --path=/var/www/html \
+        --allow-root
+```
+Con este comando se crea el archivo de configuración, se automatiza con estos parametros:
+* `--dbname` : se le especifica el nombre de la bases de datos.
+* `--dbuser` : se le especifica el nombre del usuario de la base de datos.
+* `--dbpass` : se le especifica la contraseña del usuario de la base de datos.
+* `--dbhost` : se le especifica host de la base de datos.
+```yml
+    - name: install wp
+      command:
+        wp core install \
+        --url={{ certbot.domain }} \
+        --title="{{ wordpress.title }}" \
+        --admin_user={{ wordpress.admin }} \
+        --admin_password={{ wordpress.password }} \
+        --admin_email={{ wordpress.email }} \
+        --path=/var/www/html \
+        --allow-root  
+```
+Con este comando se completa la instalación de wordpress y se automatiza con estos parametros:
+* `--url` : se especifica el dominio del sitio de WordPress.
+* `--title` : se especifica el titulo del sitio WordPress.
+* `--admin-user` : se especifica el usuario administrador.
+* `--admin-password` : se especifica la contraseña del usuario administrador.
+* `--admin-email` : se especifica el email del usuario administrador.
+```
+    - name: install plugin
+      command:
+        wp plugin install wps-hide-login --path=/var/www/html --allow-root
+
+    - name: PermaLinks
+      command: wp --path=/var/www/html plugin install permalink-manager --activate --allow-root
+
+    - name: PermaLinks config
+      command: wp --path=/var/www/html option update permalink_structure '/%postname%/' --allow-root
+```
+Se instala los plugins `wps-hide-login` y `permalink-manager`.
+Se cambia la estructura del permalink a `/%postname%/`
+
+### Main.yml
+```yml
+---
+- import_playbook: playbooks/install_lamp_frontend.yml
+- import_playbook: playbooks/install_lamp_backend.yml
+- import_playbook: playbooks/setup_letsencrypt_https.yml
+- import_playbook: playbooks/deploy.yml
+```
+Ejecuta cada playbook en este orden.
+
+
 
