@@ -160,3 +160,48 @@ Se confirgura apache y se habilita el módulo rewrite.
         name: apache2
         state: restarted
 ```
+### Setup_letsencrypt_https.yml
+```yml
+---
+- name: Playbook para configurar HTTPS
+  hosts: frontend
+  become: yes
+
+  vars_files:
+    - ../vars/variables.yml
+
+  tasks:
+
+    - name: Desinstalar instalaciones previas de Certbot
+      apt:
+        name: certbot
+        state: absent
+
+    - name: Instalar Certbot con snap
+      # command: snap install --classic certbot
+      snap:
+        name: certbot
+        classic: yes
+        state: present
+
+    - name: Crear un alias para el comando certbot
+      command: ln -s -f /snap/bin/certbot /usr/bin/certbot
+```
+Desinstalamos versiones anterioras, instalamos certbot clasico y se crea un alias para cerbot para poder usarlo en bash. 
+```yml
+    - name: Solicitar y configurar certificado SSL/TLS a Let's Encrypt con certbot
+      command:
+        certbot --apache \
+        -m {{ certbot.email }} \
+        --agree-tos \
+        --no-eff-email \
+        --non-interactive \
+        -d {{ certbot.domain }}
+```
+Con el comando `certbot --apache` realizamos el certificado y con estos siguientes parametros automatizamos el proceso:
+* `-m $CERTIFICATE_EMAIL` : indicamos la direccion de correo que en este caso es `demo@demo`
+* `--agree-tos` : indica que aceptamos los terminos de uso
+* `--no-eff-email` : indica que no queremos compartir nuestro email con la 'Electronic Frontier Foundation'
+* `-d $CERTIFICATE_DOMAIN` : indica el dominio, que en nuestro caso es 'practica-15.ddns.net', el dominio conseguido con el servicio de 'no-ip'
+* `--non-interactive` : indica que no solicite ningún tipo de dato de teclado.
+
