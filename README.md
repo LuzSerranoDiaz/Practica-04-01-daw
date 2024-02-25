@@ -4,7 +4,7 @@ En esta practica se utilizará ansible para instalar una pila lamp junto a wordp
 
 ## Playbooks
 
-# Install_lamp_backend
+### Install_lamp_backend
 
 ```yml
 ---
@@ -58,7 +58,7 @@ Los pasos hasta ahora son autodescriptivos gracias a sus nombres.
         login_unix_socket: /var/run/mysqld/mysqld.sock
 ```
 Creamos una base de datos con el nombre dado en el archivo de variables junto a un usuario utilizando los datos del archivo .env dandole todos los permisos y permitiendole conectarse desde cualquier conexión.
-```
+```yml
 
     - name: Configuramos MySQL para permitir conexiones desde cualquier interfaz
       replace:
@@ -73,4 +73,90 @@ Creamos una base de datos con el nombre dado en el archivo de variables junto a 
 ```
 Se configura con el archivo mysqld.conf y se reinicia el servicio.
 
-## Install_lamp_frontend
+### Install_lamp_frontend
+
+```yml
+---
+- name: Playbook para instalar la pila LAMP en el FrontEnd
+  hosts: frontend
+  become: yes
+
+  tasks:
+
+    - name: Actualizar los repositorios
+      apt:
+        update_cache: yes
+
+    - name: Instalar el servidor web Apache
+      apt:
+        name: apache2
+        state: present
+
+    - name: Instalar PHP y los módulos necesarios
+      apt: 
+        name:
+          - php
+          - php-mysql
+          - libapache2-mod-php
+          - php-bcmath
+          - php-curl
+          - php-gd
+          - php-imagick
+          - php-intl
+          - php-memcached
+          - php-mbstring
+          - php-dom
+          - php-zip
+          - php-cli
+        state: present
+```
+Se instala apache y php con todos sus modulos.
+```yml
+
+    - name: Modificamos el valor max_input_vars de PHP
+      replace: 
+        path: /etc/php/8.1/apache2/php.ini
+        regexp: ;max_input_vars = 1000
+        replace: max_input_vars = 5000
+
+    - name: Modificamos el valor de memory_limit de PHP
+      replace: 
+        path: /etc/php/8.1/apache2/php.ini
+        regexp: memory_limit = 128M
+        replace: memory_limit = 256M
+
+    - name: Modificamos el valor de post_max_size de PHP
+      replace: 
+        path: /etc/php/8.1/apache2/php.ini
+        regexp: post_max_size = 8M
+        replace: post_max_size = 128M
+
+    - name: Modificamos el valor de upload_max_filesize de PHP
+      replace:
+        path: /etc/php/8.1/apache2/php.ini
+        regexp: upload_max_filesize = 2M
+        replace: upload_max_filesize = 128M
+
+```
+Configuramos php, aumentando el número maximo de variables, memoria, el tamaño maximo de una peticion post y el tamaño maximo de archivos que se pueden subir.
+```yml
+
+    - name: Copiar el archivo de configuración de Apache
+      copy:
+        src: ../templates/000-default.conf
+        dest: /etc/apache2/sites-available/
+        mode: 0755
+
+    - name: Habilitar el módulo rewrite de Apache
+      apache2_module:
+        name: rewrite
+        state: present
+```
+Se confirgura apache y se habilita el módulo rewrite.
+```
+
+    - name: Reiniciar el servidor web Apache
+      service:
+        name: apache2
+        state: restarted
+```
